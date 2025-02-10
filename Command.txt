@@ -11,6 +11,37 @@ sudo nano /etc/sysctl.conf
    net.ipv4.ip_forward=1
 sudo sysctl -p
 
+Check if br_netfilter is loaded
+lsmod | grep br_netfilter
+
+Manually Load br_netfilter
+sudo modprobe br_netfilter
+
+Verify it is loaded:
+lsmod | grep br_netfilter
+If it loads successfully, the output should show something like:
+br_netfilter           28672  0
+
+
+ Ensure /proc/sys/net/bridge/bridge-nf-call-iptables Exists
+ ls -l /proc/sys/net/bridge/
+
+Enable Kernel Parameters
+echo 1 | sudo tee /proc/sys/net/bridge/bridge-nf-call-iptables
+echo 1 | sudo tee /proc/sys/net/ipv4/ip_forward
+To make it persistent across reboots, create a sysctl config:
+cat <<EOF | sudo tee /etc/sysctl.d/99-kubernetes-cri.conf
+net.bridge.bridge-nf-call-iptables  = 1
+net.ipv4.ip_forward                 = 1
+EOF
+
+Apply the changes:
+sudo sysctl --system
+
+Ensure br_netfilter Loads on Boot
+echo "br_netfilter" | sudo tee /etc/modules-load.d/k8s.conf
+sudo systemctl restart systemd-modules-load.service
+
 
 
 
